@@ -5,6 +5,10 @@ onnx-tf==1.3.0
 onnxruntime==0.5.0
 opencv-python==4.1.1.26
 tensorflow==1.13.1
+
+Model Used:
+detector = ultra_light_320.onnx
+predictor = shape_predictor_5_face_landmarks.dat
 """
 
 import time
@@ -123,17 +127,20 @@ def predict(width, height, confidences, boxes, prob_threshold, iou_threshold=0.5
 
 
 def get_forehead_coord(face_landmarks):
-    left_bottom = [face_landmarks.part(17).x, face_landmarks.part(19).y]
-    right_bottom = [face_landmarks.part(26).x, face_landmarks.part(24).y]
+    left = [face_landmarks.part(2).x, face_landmarks.part(2).y]
+    right = [face_landmarks.part(0).x, face_landmarks.part(0).y]
+    nose = [face_landmarks.part(4).x, face_landmarks.part(4).y]
 
-    center_bottom = [(left_bottom[0] + right_bottom[0]) / 2, (left_bottom[1] + right_bottom[1]) / 2]
-    # distance between end of nose bridge and center of eyebrow
-    dist_1 = [face_landmarks.part(30).x - center_bottom[0], face_landmarks.part(30).y - center_bottom[1]]
-    center_top = [center_bottom[0] - dist_1[0], center_bottom[1] - dist_1[1]]
-    # distance between left/right bottom to the center of eyebrow
-    dist_2 = [center_bottom[0] - left_bottom[0], center_bottom[1] - left_bottom[1]]
-    left_top = [center_top[0] - dist_2[0], center_top[1] - dist_2[1]]
-    right_top = [center_top[0] + dist_2[0], center_top[1] + dist_2[1]]
+    eye_center = [(left[0]+right[0])/2, (left[1]+right[1])/2]
+    # distance between nose and eye center
+    dist1 = [nose[0]-eye_center[0], nose[1]-eye_center[1]]
+    # distance between eye center to left eye
+    dist2 = [eye_center[0]-left[0], eye_center[1]-left[1]]
+    bottom_center = [eye_center[0]-2/3*dist1[0], eye_center[1]-2/3*dist1[1]]
+    left_bottom = [bottom_center[0]-dist2[0], bottom_center[1]-dist2[1]]
+    right_bottom = [bottom_center[0]+dist2[0], bottom_center[1]+dist2[1]]
+    left_top = [left_bottom[0]-dist1[0], left_bottom[1]-dist1[1]]
+    right_top = [right_bottom[0]-dist1[0], right_bottom[1]-dist1[1]]
 
     coord = np.array([left_bottom, right_bottom, right_top, left_top], np.int32)
     coord = [coord.reshape((-1, 1, 2))]
@@ -144,7 +151,7 @@ video_capture = cv2.VideoCapture(0)
 
 # onnx_path = 'ultra_light_640.onnx'
 onnx_path = 'ultra_light_320.onnx'
-predictor_path = 'shape_predictor_68_face_landmarks.dat'
+predictor_path = 'shape_predictor_5_face_landmarks.dat'
 onnx_model = onnx.load(onnx_path)
 detector = prepare(onnx_model)
 predictor = dlib.shape_predictor(predictor_path)
