@@ -158,12 +158,12 @@ predictor = dlib.shape_predictor(predictor_path)
 ort_session = ort.InferenceSession(onnx_path)
 input_name = ort_session.get_inputs()[0].name
 
+# initiate loop and timer
 loop = 0
-fps = []
+start = time.time()
 
 while True:
-    # start timer
-    start = time.time()
+    loop += 1
 
     ret, frame = video_capture.read()
     h, w, _ = frame.shape
@@ -197,20 +197,11 @@ while True:
 
     cv2.imshow('Video', frame)
 
-    loop += 1
-
-    # end timer
-    end = time.time()
-
-    # calculate the fps and current frame and add it to fps list for
-    # average fps estimation
-    frame_fps = 1 / (end - start)
-    fps.append(frame_fps)
-
-    print("Average fps: ", sum(fps) / loop)
-
     # Hit 'q' on the keyboard to quit!
     if cv2.waitKey(1) & 0xFF == ord('q'):
+        # end timer
+        end = time.time()
+        print("Average fps: ", loop/(end-start))
         break
 
 # Release handle to the webcam
